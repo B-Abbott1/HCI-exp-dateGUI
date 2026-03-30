@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Date Entry Experiment</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2436;
+    --border: #2a3050;
+    --accent: #4f8ef7;
+    --accent2: #7eb8f7;
+    --success: #3ecf8e;
+    --error: #f76e6e;
+    --text: #e8eaf2;
+    --text2: #8b92b0;
+    --text3: #4f566b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 20px; animation: fadeIn .4s ease; }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+  h1 { font-size: clamp(24px, 4vw, 36px); font-weight: 500; line-height: 1.2; color: var(--text); }
+  h2 { font-size: clamp(18px, 3vw, 26px); font-weight: 400; color: var(--text); margin-bottom: 8px; }
+  p { color: var(--text2); line-height: 1.7; font-size: 15px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 11px 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6fa3f8; }
+  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-confirm { background: var(--success); color: #0f1117; }
+  .btn-confirm:hover { background: #52dba0; }
+  .btn-confirm:disabled { opacity: .35; cursor: default; }
+
+  /* ── BADGE / PILL ── */
+  .badge { font-family: var(--mono); font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text3); display: inline-block; }
+  .badge-accent { border-color: var(--accent); color: var(--accent2); background: rgba(79,142,247,.08); }
+
+  /* ── SETUP SCREEN ── */
+  #screen-setup .card { max-width: 600px; }
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .setup-field label { display: block; display: none; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .setup-field input, .setup-field select {
+    width: 100%; padding: 9px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 14px;
+    outline: none; transition: border-color .15s;
+  }
+  #practice-count {display: none;}
+  #trial-count {display: none;}
+  #condition-order {display: none;}
+  .setup-field input:focus, .setup-field select:focus { border-color: var(--accent); }
+  .setup-field select option { background: var(--surface2); }
+
+  /* ── INSTRUCTIONS ── */
+  #screen-instructions .card { max-width: 640px; }
+  .instruction-block { background: var(--surface2); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+  .instruction-block p { font-size: 14px; }
+  .condition-pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 6px; }
+  .pill-a { background: rgba(79,142,247,.12); color: var(--accent2); border: 1px solid rgba(79,142,247,.3); }
+  .pill-b { background: rgba(62,207,142,.1); color: #52dba0; border: 1px solid rgba(62,207,142,.25); }
+
+  /* ── TRIAL SCREEN ── */
+  #screen-trial { padding: 20px; }
+  .trial-layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; width: 100%; max-width: 900px; }
+
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .progress-label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+  .progress-count { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
+  .progress-total { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+
+  .timer-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: none; }
+  .timer-display { font-family: var(--mono); font-size: 36px; font-weight: 600; color: var(--text); letter-spacing: -.02em; display: none; }
+  .timer-display.running { color: var(--accent); }
+  .timer-display.stopped-good { color: var(--success); }
+  .timer-display.stopped-err { color: var(--error); }
+
+  .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; flex: 1; overflow: hidden; }
+  .log-inner { max-height: 200px; overflow-y: auto; }
+  .log-entry { font-family: var(--mono); font-size: 11px; padding: 5px 0; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry .ok { color: var(--success); }
+  .log-entry .err { color: var(--error); }
+
+  /* ── TASK AREA ── */
+  .task-area { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 36px; display: flex; flex-direction: column; }
+
+  .condition-header { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .cond-label { font-family: var(--mono); font-size: 12px; }
+
+  .target-section { margin-bottom: 32px; }
+  .target-label { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .target-date { font-family: var(--mono); font-size: 42px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
+  .target-date-written { font-size: 24px; color: var(--text2); font-family: var(--sans); margin-top: 4px; }
+
+  .input-section { margin-bottom: 24px; }
+  .input-label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+
+  /* Date picker input */
+  input[type="date"] {
+    font-family: var(--mono); font-size: 20px;
+    background: var(--surface2); border: 2px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 14px 18px;
+    outline: none; transition: border-color .15s; width: 100%;
+    cursor: pointer;
+  }
+  input[type="date"]:focus { border-color: var(--accent); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7) sepia(1) hue-rotate(190deg); cursor: pointer; }
+
+  /* Text input */
+  input[type="text"] {
+    font-family: var(--mono); font-size: 20px;
+    background: var(--surface2); border: 2px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 14px 18px;
+    outline: none; transition: border-color .15s; width: 100%;
+    letter-spacing: .04em;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--text3); }
+
+  .format-hint { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 8px; }
+
+  .action-row { display: flex; align-items: center; gap: 12px; }
+  .feedback-inline { font-family: var(--mono); font-size: 13px; }
+  .feedback-inline.ok { color: var(--success); }
+  .feedback-inline.err { color: var(--error); }
+
+  /* practice banner */
+  .practice-banner { background: rgba(247,110,110,.08); border: 1px solid rgba(247,110,110,.2); border-radius: 8px; padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: #f7a0a0; margin-bottom: 20px; text-align: center; letter-spacing: .04em; }
+
+  /* ── RESULTS SCREEN ── */
+  #screen-results .card { max-width: 680px; }
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 24px 0; }
+  .result-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .result-block-title { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 13px; color: var(--text2); }
+  .stat-val { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); }
+  .stat-val.good { color: var(--success); }
+  .stat-val.bad { color: var(--error); }
+
+  .raw-log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 20px; max-height: 200px; overflow-y: auto; }
+  .raw-log pre { font-family: var(--mono); font-size: 11px; color: var(--text2); white-space: pre-wrap; }
+
+  .export-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SETUP SCREEN ══════════════════ -->
+<div class="screen active" id="screen-setup">
+  <div class="card">
+    <div class="eyebrow">HCI Experiment · Date Entry</div>
+    <h1>Participant setup</h1>
+    <p style="margin-top:8px">Date picker (calendar widget) vs. typed text field. Fill in the details below before beginning.</p>
+
+    <div class="setup-grid" style="margin-top:28px">
+      <div class="setup-field1">
+        <label>Participant Name</label>
+        <input type="text" id="participant-id" placeholder="e.g. Timmy Turner">
+      </div>
+      <div class="setup-field">
+        <label>Condition order</label>
+        <select id="condition-order">
+          <option value="AB">A first — Date picker, then Text</option>
+          <option value="BA">B first — Text, then Date picker</option>
+        </select>
+      </div>
+      <div class="setup-field">
+        <label>Practice trials</label>
+        <select id="practice-count">
+          <option value="2" selected>2 practice trials</option>
+        </select>
+      </div>
+      <div class="setup-field">
+        <label>Real trials per condition</label>
+        <select id="trial-count">
+          <option value="3" selected>3 trials</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div style="background:var(--surface2);border-radius:8px;padding:16px;margin-bottom:24px">
+      <p style="font-size:13px;color:var(--text2)"><strong style="color:var(--text);font-weight:500">Dependent variables recorded:</strong> completion time (ms), correctness (exact match), and error type (wrong day / month / year / format).</p>
+    </div>
+
+    <button class="btn btn-primary" onclick="goToInstructions()">Continue to instructions →</button>
+  </div>
+</div>
+
+<!-- ══════════════════ INSTRUCTIONS SCREEN ══════════════════ -->
+<div class="screen" id="screen-instructions">
+  <div class="card">
+    <div class="eyebrow">Step 2 of 4</div>
+    <h2>Instructions for participant</h2>
+    <p>Read the following aloud to the participant, word for word.</p>
+
+    <div class="instruction-block" style="margin-top:24px">
+      <p id="instr-text" style="font-size:15px;color:var(--text);line-height:1.8">"In this experiment, you will be shown a target date on the screen. Your task is to enter that exact date as quickly and accurately as you can using the input provided. You will do two sets of trials — each with a different method of entering dates. Press the <strong>Confirm</strong> button as soon as you've entered the date. Your time starts the moment the target date appears. Do not hesitate — speed and accuracy both matter. Any questions before we begin?"</p>
+    </div>
+
+    <div style="margin-top:20px">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Condition order for this participant:</p>
+      <div style="display:flex;gap:10px;" id="order-display"></div>
+    </div>
+
+    <hr class="divider">
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-outline" onclick="goTo('screen-setup')">← Back</button>
+      <button class="btn btn-primary" onclick="startExperiment()">Begin experiment →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ TRIAL SCREEN ══════════════════ -->
+<div class="screen" id="screen-trial">
+  <div class="trial-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="progress-card">
+        <div class="progress-label">Progress</div>
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <div class="progress-count" id="prog-num">0</div>
+          <div class="progress-total" id="prog-total">/ 0</div>
+        </div>
+        <div style="margin-top:8px"><span class="badge" id="phase-badge">Practice</span></div>
+      </div>
+
+      <div class="timer-card">
+        <div class="progress-label">Time</div>
+        <div class="timer-display" id="timer-display">0.000</div>
+      </div>
+
+      <div class="log-card">
+        <div class="progress-label" style="margin-bottom:8px">Trial log</div>
+        <div class="log-inner" id="trial-log">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3)">No trials yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK AREA -->
+    <div class="task-area">
+      <div class="condition-header">
+        <span class="condition-pill" id="cond-pill">—</span>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text3)" id="cond-desc">—</span>
+      </div>
+
+      <div class="practice-banner" id="practice-banner">PRACTICE — these trials are not recorded</div>
+      <div id="countdown" style="
+        font-family: var(--mono);
+        font-size: 48px;
+        text-align: center;
+        margin-bottom: 20px;
+        color: var(--accent);
+        display: none;
+      ">3</div>
+      <div class="target-section">
+        <div class="target-label">Enter this date</div>
+        <div class="target-date-written" id="target-written">—</div>
+        <div id="month-cheatsheet" style="
+        margin-top: 10px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text3);
+        line-height: 1.5;
+      ">
+        Jan=01 · Feb=02 · Mar=03 · Apr=04 · May=05 · Jun=06 · 
+        Jul=07 · Aug=08 · Sep=09 · Oct=10 · Nov=11 · Dec=12
+      </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label" id="input-label">Your input</div>
+        <div id="input-slot"></div>
+        <div class="format-hint" id="format-hint"></div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-confirm" id="btn-confirm" onclick="confirmEntry()" disabled>Confirm</button>
+        <div class="feedback-inline" id="feedback-inline"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RESULTS SCREEN ══════════════════ -->
+<div class="screen" id="screen-results">
+  <div class="card">
+    <div class="eyebrow">Experiment complete</div>
+    <h2>Results summary</h2>
+    <p>Data for this participant. Export CSV to save for analysis.</p>
+
+    <div class="results-grid" id="results-grid"></div>
+
+    <hr class="divider">
+    <div class="progress-label" style="margin-bottom:8px">Raw trial data</div>
+    <div class="raw-log"><pre id="raw-log-pre"></pre></div>
+
+    <div class="export-row">
+      <button class="btn btn-primary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-outline" onclick="location.reload()">New participant</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STATE ══
+let state = {
+  participantId: '',
+  conditionOrder: 'AB',
+  practiceCount: 5,
+  trialCount: 10,
+
+  // runtime
+  phase: 'practice', // 'practice' | 'real'
+  conditionIndex: 0, // 0 = first cond, 1 = second cond
+  trialIndex: 0,
+  startTime: null,
+  timerRaf: null,
+  currentTarget: null, // { iso, display, written }
+  trials: [], // recorded real trials
+  logEntries: [],
+  fpInstance: null, // flatpickr instance (date picker condition only)
+  fpSelected: '',   // MM-DD-YYYY value chosen via flatpickr
+};
+
+// ══ DATE GENERATION ══
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+function randomDate() {
+  const year = 2020 + Math.floor(Math.random() * 6); // 2020–2025
+  const month = Math.floor(Math.random() * 12);
+  const maxDay = DAYS_IN_MONTH[month];
+  const day = 1 + Math.floor(Math.random() * maxDay);
+
+  const mm = String(month + 1).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+
+  const formatted = `${mm}-${dd}-${year}`; // MM-DD-YYYY
+  const written = `${MONTHS[month]} ${day}, ${year}`;
+
+  return {
+    iso: formatted,
+    display: formatted,
+    written
+  };
+}
+
+// ══ NAVIGATION ══
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToInstructions() {
+  const pid = document.getElementById('participant-id').value.trim();
+  if (!pid) { alert('Please enter a Participant Name.'); return; }
+  state.participantId = pid;
+  state.conditionOrder = document.getElementById('condition-order').value;
+  state.practiceCount = parseInt(document.getElementById('practice-count').value);
+  state.trialCount = parseInt(document.getElementById('trial-count').value);
+
+  // show order
+  const ordDiv = document.getElementById('order-display');
+  const [first, second] = state.conditionOrder === 'AB'
+    ? [['A','Date picker','pill-a'], ['B','Typed text','pill-b']]
+    : [['B','Typed text','pill-b'], ['A','Date picker','pill-a']];
+  ordDiv.innerHTML = `
+    <span class="condition-pill ${first[2]}">1st — Condition ${first[0]}: ${first[1]}</span>
+    <span style="color:var(--text3);font-family:var(--mono);font-size:12px">then</span>
+    <span class="condition-pill ${second[2]}">2nd — Condition ${second[0]}: ${second[1]}</span>`;
+
+  goTo('screen-instructions');
+}
+
+function getCondition(idx) {
+  // returns 'datepicker' or 'textfield'
+  const order = state.conditionOrder; // 'AB' or 'BA'
+  if (order === 'AB') return idx === 0 ? 'datepicker' : 'textfield';
+  return idx === 0 ? 'textfield' : 'datepicker';
+}
+
+function getCondLabel(cond) {
+  return cond === 'datepicker' ? 'A — Date picker' : 'B — Typed text';
+}
+
+// ══ EXPERIMENT ══
+function startExperiment() {
+  state.conditionIndex = 0;
+  state.phase = 'practice';
+  state.trialIndex = 0;
+  state.trials = [];
+  state.logEntries = [];
+  goTo('screen-trial');
+  setupConditionUI();
+  loadTrial();
+}
+
+function setupConditionUI() {
+  // Clean up any previous flatpickr instance
+  if (state.fpInstance) { state.fpInstance.destroy(); state.fpInstance = null; }
+
+  const cond = getCondition(state.conditionIndex);
+  const isPicker = cond === 'datepicker';
+
+  // pill + desc
+  const pill = document.getElementById('cond-pill');
+  pill.className = 'condition-pill ' + (isPicker ? 'pill-a' : 'pill-b');
+  pill.textContent = isPicker ? 'Condition A' : 'Condition B';
+  document.getElementById('cond-desc').textContent = isPicker ? 'Calendar date picker' : 'Free-text entry';
+
+  // input slot
+  const slot = document.getElementById('input-slot');
+  if (isPicker) {
+    slot.innerHTML = `<input type="text" id="the-input" style="width:100%">`;
+    state.fpInstance = null;
+    state.fpInstance = flatpickr("#the-input", {
+    dateFormat: "Y-m-d",       //  internal format (DO NOT CHANGE)
+    altInput: true,            //  user sees alternate field
+    altFormat: "m-d-Y",        //  user-visible MM-DD-YYYY
+
+    allowInput: false,
+    clickOpens: true,
+    disableMobile: true,
+    minDate: "2020-01-01",
+    maxDate: "2026-12-31",
+    position: "below center",
+    appendTo: document.querySelector(".task-area"),
+
+    onChange: function(selectedDates, dateStr, instance) {
+      // Convert flatpickr's YYYY-MM-DD dateStr → MM-DD-YYYY to match target format
+      const d = selectedDates[0];
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      state.fpSelected = `${mm}-${dd}-${yyyy}`;
+      document.getElementById('btn-confirm').disabled = false;
+    }
+});
+    document.getElementById('format-hint').textContent = 'Use the calendar widget to select the date.';
+  } else {
+    slot.innerHTML = `<input type="text" id="the-input" placeholder="MM-DD-YYYY" maxlength="10" oninput="onTextInput(this)" style="width:100%">`;
+    document.getElementById('format-hint').textContent = 'Format: MM-DD-YYYY (e.g. 07-15-2023)';
+  }
+}
+
+function loadTrial() {
+  const totalPractice = state.practiceCount;
+  const totalReal = state.trialCount;
+  
+
+  // determine phase & counts
+  const isPractice = state.phase === 'practice';
+  const total = isPractice ? totalPractice : totalReal;
+  const trialNum = state.trialIndex + 1;
+
+  // UI updates
+  document.getElementById('practice-banner').style.display = isPractice ? '' : 'none';
+  document.getElementById('phase-badge').textContent = isPractice ? 'Practice' : `Condition ${state.conditionIndex+1} of 2`;
+  document.getElementById('phase-badge').className = 'badge ' + (isPractice ? '' : 'badge-accent');
+
+  const progressFrac = state.conditionIndex === 0
+    ? (state.trialIndex / totalReal) * (isPractice ? 0 : 50)
+    : 50 + (state.trialIndex / totalReal) * 50;
+  document.getElementById('prog-fill').style.width = Math.min(progressFrac, 100) + '%';
+  document.getElementById('prog-num').textContent = isPractice ? `P${trialNum}` : trialNum;
+  document.getElementById('prog-total').textContent = `/ ${total}`;
+
+  // Generate target
+  state.currentTarget = randomDate();
+  document.getElementById('target-written').textContent = state.currentTarget.written;
+
+  // Reset input
+  const inp = document.getElementById('the-input');
+  if (inp) { inp.value = ''; inp.disabled = true; }
+  state.fpSelected = '';
+  // Also lock the flatpickr alt input (the visible field the user actually clicks)
+  if (state.fpInstance) {
+    state.fpInstance.altInput.disabled = true;
+    state.fpInstance.close();
+  }
+  document.getElementById('btn-confirm').disabled = true;
+  document.getElementById('feedback-inline').textContent = '';
+
+  // Show countdown, then unlock input and start timer
+  startCountdown(() => {
+    if (inp) inp.disabled = false;
+    if (state.fpInstance) state.fpInstance.altInput.disabled = false;
+    inp.focus();
+    startTimer();
+  });
+}
+
+function onInputChange() {
+  document.getElementById('btn-confirm').disabled = false;
+}
+
+function onTextInput(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+
+  if (v.length > 2) v = v.slice(0,2) + '-' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5);
+
+  el.value = v.slice(0, 10);
+  document.getElementById('btn-confirm').disabled = (el.value.length !== 10);
+}
+
+function confirmEntry() {
+  const elapsed = stopTimer();
+  const inp = document.getElementById('the-input');
+  const cond = getCondition(state.conditionIndex);
+  const entered = cond === 'datepicker' ? state.fpSelected : (inp ? inp.value.trim() : '');
+  const target = state.currentTarget.iso;
+  const correct = entered === target;
+
+  // error type
+  let errorType = 'none';
+  if (!correct) {
+    const tParts = target.split('-');
+    const eParts = entered.split('-');
+    if (eParts.length === 3) {
+      if (eParts[2] !== tParts[2]) errorType = 'wrong-year';
+      else if (eParts[0] !== tParts[0]) errorType = 'wrong-month';
+      else errorType = 'wrong-day';
+    } else {
+      errorType = 'format-error';
+    }
+  }
+
+  // feedback
+  const fb = document.getElementById('feedback-inline');
+  fb.textContent = correct ? `✓ Correct — ${(elapsed/1000).toFixed(2)}s` : `✗ Wrong (${errorType}) — ${(elapsed/1000).toFixed(2)}s`;
+  fb.className = 'feedback-inline ' + (correct ? 'ok' : 'err');
+  document.getElementById('btn-confirm').disabled = true;
+
+  // record
+  const entry = {
+    participant: state.participantId,
+    condition: cond,
+    condLabel: getCondLabel(cond),
+    phase: state.phase,
+    trial: state.trialIndex + 1,
+    target,
+    entered,
+    timeMs: elapsed,
+    correct,
+    errorType,
+  };
+  if (state.phase === 'real') state.trials.push(entry);
+
+  // log
+  addLogEntry(entry);
+
+  // auto-advance after short delay
+  setTimeout(() => advanceTrial(), 1200);
+}
+
+function advanceTrial() {
+  state.trialIndex++;
+  const isPractice = state.phase === 'practice';
+  const limit = isPractice ? state.practiceCount : state.trialCount;
+
+  if (state.trialIndex >= limit) {
+    // end of this phase
+    if (isPractice) {
+      // switch to real
+      state.phase = 'real';
+      state.trialIndex = 0;
+      document.getElementById('feedback-inline').textContent = '';
+      showConditionTransition('real');
+    } else {
+      // end of condition
+      if (state.conditionIndex === 0) {
+        showConditionTransition('switch');
+      } else {
+        showResults();
+      }
+    }
+  } else {
+    loadTrial();
+  }
+}
+
+function showConditionTransition(type) {
+  stopTimer();
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,17,23,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:20px;';
+
+  let msg = '', sub = '';
+  if (type === 'real') {
+    msg = 'Practice complete';
+    sub = 'Real trials begin now. Your performance will be recorded.';
+  } else {
+    msg = 'Condition complete';
+    sub = 'Take a short break, then continue with the second input method.';
+  }
+
+  overlay.innerHTML = `
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3)">${type === 'switch' ? 'Next condition' : 'Starting real trials'}</div>
+    <div style="font-size:28px;font-weight:500;color:var(--text)">${msg}</div>
+    <div style="font-size:15px;color:var(--text2);max-width:360px;text-align:center">${sub}</div>
+    <button class="btn btn-primary" onclick="this.closest('div').remove(); continueAfterBreak('${type}')">Continue →</button>`;
+  document.body.appendChild(overlay);
+}
+
+function continueAfterBreak(type) {
+  if (type === 'real') {
+    loadTrial();
+  } else {
+    // switch condition
+    state.conditionIndex = 1;
+    state.phase = 'practice';
+    state.trialIndex = 0;
+    setupConditionUI();
+    loadTrial();
+  }
+}
+
+// ══ TIMER ══
+function resetTimer() {
+  if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+  state.startTime = null;
+  const el = document.getElementById('timer-display');
+  el.textContent = '0.000';
+  el.className = 'timer-display';
+}
+
+function startTimer() {
+  state.startTime = performance.now();
+  const el = document.getElementById('timer-display');
+  el.className = 'timer-display running';
+  const tick = () => {
+    if (!state.startTime) return;
+    const elapsed = (performance.now() - state.startTime) / 1000;
+    el.textContent = elapsed.toFixed(3);
+    state.timerRaf = requestAnimationFrame(tick);
+  };
+  state.timerRaf = requestAnimationFrame(tick);
+}
+
+function stopTimer() {
+  const elapsed = performance.now() - state.startTime;
+  if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+  state.startTime = null;
+  const el = document.getElementById('timer-display');
+  el.textContent = (elapsed / 1000).toFixed(3);
+  return elapsed;
+}
+
+// ══ LOG ══
+function addLogEntry(e) {
+  state.logEntries.push(e);
+  const log = document.getElementById('trial-log');
+  if (log.firstChild && log.firstChild.style && log.firstChild.style.color) log.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="${e.correct?'ok':'err'}">${e.correct?'✓':'✗'}</span> T${e.trial} · ${(e.timeMs/1000).toFixed(2)}s · ${e.correct ? 'correct' : e.errorType}`;
+  log.insertBefore(div, log.firstChild);
+}
+
+// ══ RESULTS ══
+function showResults() {
+  const grid = document.getElementById('results-grid');
+  const conditions = ['datepicker', 'textfield'];
+  const labels = { datepicker: 'Condition A — Date picker', textfield: 'Condition B — Typed text' };
+
+  let html = '';
+  conditions.forEach(cond => {
+    const t = state.trials.filter(x => x.condition === cond);
+    if (!t.length) return;
+    const times = t.map(x => x.timeMs);
+    const avgMs = times.reduce((a,b) => a+b, 0) / times.length;
+    const medMs = [...times].sort((a,b)=>a-b)[Math.floor(times.length/2)];
+    const correct = t.filter(x => x.correct).length;
+    const errRate = ((t.length - correct) / t.length * 100).toFixed(0);
+    const errTypes = t.filter(x=>!x.correct).map(x=>x.errorType);
+    const errSummary = errTypes.length ? errTypes.join(', ') : '—';
+    const isA = cond === 'datepicker';
+    html += `
+      <div class="result-block">
+        <div class="result-block-title">${labels[cond]}</div>
+        <div class="stat-row"><span class="stat-label">Trials</span><span class="stat-val">${t.length}</span></div>
+        <div class="stat-row"><span class="stat-label">Mean time</span><span class="stat-val">${(avgMs/1000).toFixed(2)}s</span></div>
+        <div class="stat-row"><span class="stat-label">Median time</span><span class="stat-val">${(medMs/1000).toFixed(2)}s</span></div>
+        <div class="stat-row"><span class="stat-label">Correct</span><span class="stat-val good">${correct} / ${t.length}</span></div>
+        <div class="stat-row"><span class="stat-label">Error rate</span><span class="stat-val ${errRate>0?'bad':''}">${errRate}%</span></div>
+        <div class="stat-row"><span class="stat-label">Error types</span><span class="stat-val" style="font-size:11px">${errSummary}</span></div>
+      </div>`;
+  });
+  grid.innerHTML = html;
+
+  // raw CSV-style log
+  const header = 'participant,condition,phase,trial,target,entered,timeMs,correct,errorType\n';
+  const rows = state.logEntries.filter(e=>e.phase==='real').map(e =>
+    [e.participant,e.condition,e.phase,e.trial,e.target,e.entered,Math.round(e.timeMs),e.correct,e.errorType].join(',')
+  ).join('\n');
+  document.getElementById('raw-log-pre').textContent = header + rows;
+
+  goTo('screen-results');
+}
+
+// ══ EXPORT ══
+function exportCSV() {
+  const header = 'participant,condition,condLabel,phase,trial,target,entered,timeMs,correct,errorType\n';
+  const rows = state.logEntries.filter(e=>e.phase==='real').map(e =>
+    [e.participant,e.condLabel,e.condLabel,e.phase,e.trial,e.target,e.entered,Math.round(e.timeMs),e.correct,e.errorType].join(',')
+  ).join('\n');
+  const blob = new Blob([header + rows], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `date_experiment_${state.participantId}.csv`;
+  a.click();
+}
+
+function startCountdown(callback) {
+  const el = document.getElementById('countdown');
+  let count = 5;
+
+  el.style.display = 'block';
+  el.textContent = count;
+
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      el.textContent = count;
+    } else {
+      clearInterval(interval);
+      el.style.display = 'none';
+      callback(); // start trial
+    }
+  }, 1000);
+}
+</script>
+</body>
+</html>
