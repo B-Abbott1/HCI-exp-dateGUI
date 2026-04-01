@@ -256,7 +256,7 @@
     <p>Read the following aloud to the participant, word for word.</p>
 
     <div class="instruction-block" style="margin-top:24px">
-      <p id="instr-text" style="font-size:15px;color:var(--text);line-height:1.8">"In this experiment, you will be shown a target date on the screen. Your task is to enter that exact date as quickly and accurately as you can using the input provided. You will do two sets of trials, each with a different method of entering dates. Press the <strong>Confirm</strong> button as soon as you've entered the date. Your time starts the moment the target date appears. Do not hesitate, speed and accuracy both matter. Any questions before we begin?"</p>
+      <p id="instr-text" style="font-size:15px;color:var(--text);line-height:1.8">"In this experiment, you will be shown a target date on the screen. Your task is to enter that exact date as quickly and accurately as you can using the input provided. You will do two sets of trials — each with a different method of entering dates. Press the <strong>Confirm</strong> button as soon as you've entered the date. Your time starts the moment the target date appears. Do not hesitate — speed and accuracy both matter. Any questions before we begin?"</p>
     </div>
 
     <div style="margin-top:20px">
@@ -421,7 +421,7 @@ function goToInstructions() {
   const pid = document.getElementById('participant-id').value.trim();
   if (!pid) { alert('Please enter a Participant Name.'); return; }
   state.participantId = pid;
-  state.conditionOrder = document.getElementById('condition-order').value;
+  state.conditionOrder = Math.random() < 0.5 ? 'AB' : 'BA';
   state.practiceCount = parseInt(document.getElementById('practice-count').value);
   state.trialCount = parseInt(document.getElementById('trial-count').value);
 
